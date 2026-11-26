@@ -1,0 +1,8 @@
+services:
+  securebank:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Zmien na 1 aby uruchomic wersje bezpieczna (atak nie zadziala)
+      - SECURE=0
