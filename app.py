@@ -37,7 +37,6 @@ USERS = {
         "iban": "PL61 1090 1014 0000 0712 1981 2874",
         "card": "4921",
         "secret": "7781",  # PIN do skrytki depozytowej
-        "flag": "FLAG{sesja_przejeta_bez_hasla}",  # CTF: nagroda za przejecie sesji Alicji
     },
     # ATAKUJACY - zwykly, inny klient banku. Ma wlasne (ubogie) konto,
     # z ktorego wysle ofierze przelew ze zlosliwym tytulem (stored XSS).
@@ -47,7 +46,6 @@ USERS = {
         "iban": "PL27 1050 0099 0000 0001 2345 6789",
         "card": "6610",
         "secret": "0000",
-        "flag": "FLAG{to_tylko_twoja_wlasna_sesja_nie_alicji}",  # zaslepka - konto atakujacego
     },
 }
 
@@ -223,11 +221,6 @@ def view_dashboard(username):
         "<div class='card'><h2>Dane wrazliwe</h2>"
           "<div class='row'><div class='muted'>PIN do skrytki depozytowej</div>"
           "<div class='danger pill'>" + html.escape(u["secret"]) + "</div></div></div>"
-        "<div class='card' style='border:1px solid #3ad29f'><h2>🚩 Flaga (CTF)</h2>"
-          "<div class='muted' style='margin-bottom:10px'>Widoczna tylko dla zalogowanego "
-          "wlasciciela konta. Flage Alicji zdobedziesz WYLACZNIE majac jej sesje (cookie).</div>"
-          "<div class='pill' style='font-size:16px;color:#3ad29f;letter-spacing:.5px'>"
-          + html.escape(u["flag"]) + "</div></div>"
         "<div class='card'><h2>Wyslij przelew</h2>"
           "<form method='POST' action='/transfer'>"
           "<div class='two'>"
@@ -278,6 +271,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if FIXATION and "sid" in qs:
             return self.redirect(path, cookie="SESSIONID=" + qs["sid"][0] + "; Path=/")
         user = current_user(self)
+        # Po restarcie serwera (SESSIONS jest puste) albo po demie fixacji przegladarka
+        # trzyma STARY, niewazny SESSIONID. Czyscimy go, zeby stan byl czysty.
+        # W trybie FIXATION tego nie robimy - tam podsadzony SID ma celowo przetrwac do logowania.
+        stale_sid = parse_cookies(self.headers.get("Cookie")).get("SESSIONID")
+        if stale_sid and user is None and not FIXATION and path not in ("/login", "/reset"):
+            return self.redirect("/login", cookie="SESSIONID=; Path=/; Max-Age=0")
         if path == "/":
             return self.redirect("/dashboard" if user else "/login")
         if path == "/login":
@@ -285,7 +284,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path == "/logout":
             jar = parse_cookies(self.headers.get("Cookie"))
             SESSIONS.pop(jar.get("SESSIONID", ""), None)
-            return self.redirect("/login")
+            return self.redirect("/login", cookie="SESSIONID=; Path=/; Max-Age=0")
         if path == "/dashboard":
             if not user:
                 return self.redirect("/login")
@@ -296,7 +295,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             TX.update(default_tx())
             BALANCES.clear()
             BALANCES.update(default_balances())
-            return self.redirect("/login")
+            return self.redirect("/login", cookie="SESSIONID=; Path=/; Max-Age=0")
         self.html(shell("404", "<div class='card'>Nie znaleziono.</div>"), status=404)
 
     def do_POST(self):
