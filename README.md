@@ -1,3 +1,5 @@
+![session hijacking](https://r73.cooltext.com/rendered/cooltext519835687838582.png)
+
 # Session Hijacking Lab — NovaBank
 
 Celowo podatna aplikacja webowa (mini-bank) do nauki, jak działa **przejęcie sesji**
