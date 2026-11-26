@@ -37,7 +37,7 @@ USERS = {
         "iban": "PL61 1090 1014 0000 0712 1981 2874",
         "card": "4921",
         "secret": "7781",  # PIN do skrytki depozytowej
-        "flag": "FLAG{c00ki3s_b34t_p4ssw0rds_4nd_2fa}",  # CTF: nagroda za przejecie sesji Alicji
+        "flag": "FLAG{sesja_przejeta_bez_hasla}",  # CTF: nagroda za przejecie sesji Alicji
     },
     # ATAKUJACY - zwykly, inny klient banku. Ma wlasne (ubogie) konto,
     # z ktorego wysle ofierze przelew ze zlosliwym tytulem (stored XSS).
