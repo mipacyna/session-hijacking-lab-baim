@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="Session Hijacking" width="520">
+</p>
+
 # Session Hijacking Lab — NovaBank
 
 Celowo podatna aplikacja webowa (mini-bank) do nauki, jak działa **przejęcie sesji**
