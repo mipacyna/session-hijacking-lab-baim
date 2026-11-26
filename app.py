@@ -11,9 +11,9 @@ Nie ma tu zadnych "magicznych przyciskow" - zobacz README.md.
 Wektor XSS: TYTUL PRZELEWU. Atakujacy wysyla ofierze przelew ze zlosliwym
 tytulem; skrypt odpala sie, gdy ofiara oglada swoja historie transakcji.
 
-Tryb:
-  SECURE=0 (domyslnie) -> cookie BEZ HttpOnly -> document.cookie widzi sesje -> atak dziala.
-  SECURE=1             -> cookie z HttpOnly/SameSite -> JS nie widzi sesji -> atak pada.
+Aplikacja jest CELOWO podatna i nie ma zadnego trybu "bezpiecznego":
+  - cookie BEZ HttpOnly/SameSite  -> document.cookie (XSS) widzi sesje,
+  - BRAK regeneracji SID po logowaniu -> podatne na session fixation.
 """
 
 import http.server
@@ -24,8 +24,6 @@ import os
 import secrets
 import datetime
 
-SECURE = os.environ.get("SECURE", "0") == "0"
-FIXATION = os.environ.get("FIXATION", "0") == "1"  # 1 = podatne na session fixation
 PORT = int(os.environ.get("PORT", "5476"))
 
 # --- "Baza danych" w pamieci ---------------------------------------------
@@ -169,10 +167,7 @@ CSS = """
 
 
 def shell(title, inner, chrome=True):
-    if SECURE:
-        badge = "<span class='mode' style='background:#10351f;color:#3ad29f'>SECURE - HttpOnly ON</span>"
-    else:
-        badge = "<span class='mode' style='background:#3a1018;color:#ff6b7d'>VULNERABLE - no HttpOnly</span>"
+    badge = "<span class='mode' style='background:#3a1018;color:#ff6b7d'>VULNERABLE (lab edukacyjny)</span>"
     nav = ""
     if chrome:
         nav = ("<div class='nav'><a href='/dashboard'>Pulpit</a>"
@@ -257,25 +252,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
     def session_cookie(self, sid):
-        # JEDYNA roznica miedzy trybem podatnym i bezpiecznym:
-        if SECURE:
-            return "SESSIONID=" + sid + "; Path=/; HttpOnly; SameSite=Strict"
-        return "SESSIONID=" + sid + "; Path=/"  # brak HttpOnly -> JS odczyta cookie
+        # Celowo podatne: bez HttpOnly/SameSite -> JS (XSS) odczyta cookie
+        return "SESSIONID=" + sid + "; Path=/"
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         qs = urllib.parse.parse_qs(parsed.query)
-        # SESSION FIXATION: atakujacy podsadza ofierze znany SID przez link ?sid=...
-        # (dziala tylko w trybie podatnym FIXATION=1)
-        if FIXATION and "sid" in qs:
-            return self.redirect(path, cookie="SESSIONID=" + qs["sid"][0] + "; Path=/")
+        # SESSION FIXATION (zawsze aktywne): atakujacy podsadza ofierze znany SID
+        # przez link ?sid=... Ladujemy na /login (strona wylaczona z czyszczenia nizej),
+        # zeby podsadzony SID przetrwal do zalogowania ofiary.
+        if "sid" in qs:
+            return self.redirect("/login", cookie="SESSIONID=" + qs["sid"][0] + "; Path=/")
         user = current_user(self)
-        # Po restarcie serwera (SESSIONS jest puste) albo po demie fixacji przegladarka
-        # trzyma STARY, niewazny SESSIONID. Czyscimy go, zeby stan byl czysty.
-        # W trybie FIXATION tego nie robimy - tam podsadzony SID ma celowo przetrwac do logowania.
+        # Po restarcie serwera (SESSIONS jest puste) przegladarka trzyma STARY, niewazny
+        # SESSIONID. Czyscimy go, zeby stan byl czysty. /login i /reset wylaczone, zeby
+        # nie kasowac SID-a swiezo podsadzonego przez fixacje.
         stale_sid = parse_cookies(self.headers.get("Cookie")).get("SESSIONID")
-        if stale_sid and user is None and not FIXATION and path not in ("/login", "/reset"):
+        if stale_sid and user is None and path not in ("/login", "/reset"):
             return self.redirect("/login", cookie="SESSIONID=; Path=/; Max-Age=0")
         if path == "/":
             return self.redirect("/dashboard" if user else "/login")
@@ -306,14 +300,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
             pw = data.get("password", [""])[0]
             u = USERS.get(un)
             if u and u["password"] == pw:
+                # !!! PODATNOSC (session fixation): BRAK regeneracji SID po zalogowaniu.
+                # Jesli przegladarka ma juz SESSIONID (np. podsadzony przez atakujacego), zostaje.
                 existing = parse_cookies(self.headers.get("Cookie")).get("SESSIONID")
-                if FIXATION and existing:
-                    # !!! PODATNOSC: brak regeneracji - sesja zostaje na SID narzuconym ofierze
-                    SESSIONS[existing] = un
-                    sid = existing
-                else:
-                    # OBRONA: regeneracja SID po zalogowaniu (nowy, losowy identyfikator)
-                    sid = new_session(un)
+                sid = existing if existing else new_session(un)
+                SESSIONS[sid] = un
                 return self.redirect("/dashboard", cookie=self.session_cookie(sid))
             return self.html(view_login("Bledny identyfikator lub haslo."))
         if self.path == "/transfer":
@@ -342,9 +333,7 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 if __name__ == "__main__":
     print("=" * 56)
-    print(" NovaBank - LAB Session Hijacking")
-    print(" Tryb:", "SECURE (HttpOnly)" if SECURE else "VULNERABLE (brak HttpOnly)")
-    print(" Session fixation:", "WLACZONA (podatne)" if FIXATION else "wylaczona (regeneracja SID)")
+    print(" NovaBank - LAB Session Hijacking (wersja podatna)")
     print(" http://localhost:%d/" % PORT)
     print("=" * 56)
     Server(("0.0.0.0", PORT), Handler).serve_forever()

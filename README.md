@@ -1,7 +1,7 @@
 # Session Hijacking Lab — NovaBank
 
 Celowo podatna aplikacja webowa (mini-bank) do nauki, jak działa **przejęcie sesji**
-(*session hijacking*) i jak się przed nim bronić. Projekt edukacyjny.
+(*session hijacking*). Projekt edukacyjny — aplikacja jest celowo podatna, bez żadnego trybu bezpiecznego.
 
 > ⚠️ Materiał **wyłącznie edukacyjny**. Uruchamiaj tylko lokalnie, na własnej maszynie.
 
@@ -31,12 +31,11 @@ Masz Dockera? Zamiast tego: `docker compose up --build`.
 
 ## Co pokazuje lab
 
-Mini-bank, na którym można na żywo prześledzić przejęcie cudzej sesji i obronę:
+Mini-bank, na którym można na żywo prześledzić przejęcie cudzej sesji:
 
 - **XSS** — wstrzyknięty skrypt wykrada ciasteczko sesyjne.
 - **Session Fixation** — atakujący narzuca ofierze znany identyfikator sesji.
 - **Phishing AiTM** — reverse proxy (`aitm.py`) przechwytuje sesję w locie (jak Evilginx).
-- **Tryb obrony** — bezpieczne `Set-Cookie` (`HttpOnly`, `SameSite`) i regeneracja identyfikatora sesji.
 
 Myśl przewodnia: *sesja to „bilet na okaziciela" — kto ma ciasteczko `SESSIONID`, ten jest
 zalogowanym użytkownikiem, bez hasła i bez 2FA.*
@@ -45,12 +44,10 @@ zalogowanym użytkownikiem, bez hasła i bez 2FA.*
 
 ## Tryby uruchomienia
 
-| Polecenie | Tryb |
+| Polecenie | Co uruchamia |
 |---|---|
-| `python app.py` | podatny na XSS, z regeneracją SID |
-| `$env:FIXATION=1; python app.py` | podatny na Session Fixation |
-| `$env:SECURE=1; python app.py` | bezpieczne ciasteczko (HttpOnly + SameSite) |
-| `python aitm.py` | proxy AiTM na porcie 7000 |
+| `python app.py` | podatny bank (XSS + Session Fixation) na porcie 5476 |
+| `python aitm.py` | proxy AiTM (phishing) na porcie 7000 |
 
 Reset stanu labu (salda, sesje): **http://localhost:5476/reset**
 
