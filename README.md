@@ -38,6 +38,9 @@ Mini-bank, na którym można na żywo prześledzić przejęcie cudzej sesji i ob
 - **Phishing AiTM** — reverse proxy (`aitm.py`) przechwytuje sesję w locie (jak Evilginx).
 - **Tryb obrony** — bezpieczne `Set-Cookie` (`HttpOnly`, `SameSite`) i regeneracja identyfikatora sesji.
 
+Na koncie Alicji ukryta jest **flaga CTF** (`FLAG{...}`) — zdobywasz ją tylko wtedy, gdy wejdziesz
+na jej konto z przejętą sesją. To dowód, że atak się udał.
+
 Myśl przewodnia: *sesja to „bilet na okaziciela" — kto ma ciasteczko `SESSIONID`, ten jest
 zalogowanym użytkownikiem, bez hasła i bez 2FA.*
 
