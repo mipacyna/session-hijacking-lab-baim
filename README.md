@@ -11,7 +11,7 @@ Celowo podatna aplikacja webowa (mini-bank) do nauki, jak działa **przejęcie s
 
 ---
 
-## 🚀 Szybki start
+<h2 align="center"><img src="assets/szybki-start.png" alt="Szybki start" width="340"></h2>
 
 Potrzebujesz tylko **Pythona 3** — żadnych bibliotek, żadnego `pip install`.
 
@@ -33,7 +33,7 @@ Masz Dockera? Zamiast tego: `docker compose up --build`.
 
 ---
 
-## Co pokazuje lab
+<h2 align="center"><img src="assets/co-pokazuje.png" alt="Co pokazuje lab" width="340"></h2>
 
 Mini-bank, na którym można na żywo prześledzić przejęcie cudzej sesji:
 
@@ -46,7 +46,9 @@ zalogowanym użytkownikiem, bez hasła i bez 2FA.*
 
 ---
 
-## Payload XSS (do wypróbowania)
+<h2 align="center"><img src="assets/payload-xss.png" alt="Payload XSS" width="340"></h2>
+
+**(do wypróbowania)**
 
 Podatność to **stored XSS w tytule przelewu** — serwer renderuje tytuł bez escapowania.
 Zaloguj się jako `mallory`, wyślij Alicji przelew na `0,01`, a w polu **Tytuł przelewu** wklej:
@@ -76,7 +78,9 @@ curl http://localhost:5476/dashboard -H "Cookie: SESSIONID=<skradziony_id>"
 
 ---
 
-## Atak: Session Fixation (krok po kroku)
+<h2 align="center"><img src="assets/session-fixation.png" alt="Session Fixation" width="420"></h2>
+
+**Atak krok po kroku**
 
 Pomysł: atakujący **sam wybiera** identyfikator sesji i podsuwa go ofierze **zanim**
 się zaloguje. Aplikacja po logowaniu **nie zmienia** `SESSIONID`, więc po zalogowaniu
@@ -108,7 +112,9 @@ ofiary ten sam identyfikator jest już ważną sesją — a atakujący go zna.
 
 ---
 
-## Atak: Phishing AiTM (reverse proxy, jak Evilginx)
+<h2 align="center"><img src="assets/phishing-aitm.png" alt="Phishing AiTM" width="380"></h2>
+
+**Reverse proxy, jak Evilginx**
 
 Pomysł: ofiara loguje się na **podstawionej stronie** atakującego, która po cichu
 przepuszcza cały ruch do prawdziwego banku (*Adversary-in-the-Middle*). Hasło i nawet
@@ -157,7 +163,7 @@ ciasteczko sesji**.
 
 ---
 
-## Tryby uruchomienia
+<h2 align="center"><img src="assets/tryby.png" alt="Tryby uruchomienia" width="420"></h2>
 
 | Polecenie | Co uruchamia |
 |---|---|
@@ -168,7 +174,7 @@ Reset stanu labu (salda, sesje): **http://localhost:5476/reset**
 
 ---
 
-## Pliki
+<h2 align="center"><img src="assets/pliki.png" alt="Pliki" width="240"></h2>
 
 - `app.py` — podatny bank (czysty Python, bez zależności).
 - `aitm.py` — reverse proxy AiTM (symulacja Evilginx).
