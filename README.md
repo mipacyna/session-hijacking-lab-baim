@@ -72,6 +72,87 @@ curl http://localhost:5476/dashboard -H "Cookie: SESSIONID=<skradziony_id>"
 
 ---
 
+## Atak: Session Fixation (krok po kroku)
+
+Pomysł: atakujący **sam wybiera** identyfikator sesji i podsuwa go ofierze **zanim**
+się zaloguje. Aplikacja po logowaniu **nie zmienia** `SESSIONID`, więc po zalogowaniu
+ofiary ten sam identyfikator jest już ważną sesją — a atakujący go zna.
+
+1. Atakujący zmyśla sobie dowolny identyfikator, np. `atak123`, i wysyła ofierze link:
+
+   ```
+   http://localhost:5476/?sid=atak123
+   ```
+
+2. Ofiara klika link. Aplikacja ustawia jej w przeglądarce ciasteczko
+   `SESSIONID=atak123` i przerzuca na stronę logowania.
+
+3. Ofiara **normalnie się loguje** (`alice` / `password123`). Serwer **nie generuje**
+   nowego identyfikatora — zostaje `atak123`, teraz powiązany z kontem Alicji.
+
+4. Atakujący, który od początku zna `atak123`, wkleja go u siebie i jest zalogowany
+   jako Alicja:
+
+   ```powershell
+   curl http://localhost:5476/dashboard -H "Cookie: SESSIONID=atak123"
+   ```
+
+   (albo **DevTools → Application → Cookies** → wpisz `SESSIONID` = `atak123` i odśwież).
+
+> Dlaczego działa: aplikacja przyjmuje identyfikator sesji z adresu URL i **nie wydaje
+> nowego po zalogowaniu**. Poprawnie zrobiony bank regeneruje `SESSIONID` przy logowaniu.
+
+---
+
+## Atak: Phishing AiTM (reverse proxy, jak Evilginx)
+
+Pomysł: ofiara loguje się na **podstawionej stronie** atakującego, która po cichu
+przepuszcza cały ruch do prawdziwego banku (*Adversary-in-the-Middle*). Hasło i nawet
+2FA przechodzą do prawdziwego serwera — a po drodze proxy **przechwytuje gotowe
+ciasteczko sesji**.
+
+1. Uruchom prawdziwy bank (jeśli jeszcze nie działa):
+
+   ```powershell
+   python app.py
+   ```
+
+2. W **drugim** terminalu uruchom proxy phishingowe atakującego:
+
+   ```powershell
+   python aitm.py
+   ```
+
+   Proxy nasłuchuje na **http://localhost:7000** i przekazuje wszystko do banku na 5476.
+
+3. Ofiara dostaje link do „banku" i loguje się — ale pod adresem atakującego:
+
+   ```
+   http://localhost:7000
+   ```
+
+   Strona wygląda 1:1 jak NovaBank (bo to ten sam bank, tylko przez proxy). Ofiara
+   wpisuje `alice` / `password123` i loguje się normalnie.
+
+4. W terminalu z `aitm.py` pojawia się przechwycona sesja:
+
+   ```
+   >>> PRZECHWYCONO SESJE OFIARY: SESSIONID=...
+   ```
+
+5. Atakujący wkleja to ciasteczko u siebie i wchodzi na konto Alicji na **prawdziwym**
+   banku (5476), bez hasła:
+
+   ```powershell
+   curl http://localhost:5476/dashboard -H "Cookie: SESSIONID=<przechwycony_id>"
+   ```
+
+> Dlaczego działa: liczy się **ciasteczko sesji po zalogowaniu**, a nie samo hasło.
+> Skoro atakujący stoi w środku połączenia, przejmuje gotową sesję — dlatego klasyczne
+> 2FA tu nie chroni (chronią dopiero passkeys / FIDO2 i tokeny powiązane z urządzeniem).
+
+---
+
 ## Tryby uruchomienia
 
 | Polecenie | Co uruchamia |
